@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.6.20](https://github.com/grafana/loki/compare/v3.6.19...v3.6.20) (2026-11-02)
+
+
+### Bug Fixes
+
+* **security/HIGH/:** Update module github.com/go-jose/go-jose/v4 to v4.1.6 [SECURITY] (release-3.6.x) ([#25829](https://github.com/grafana/loki/issues/25829)) ([d1915f4](https://github.com/grafana/loki/commit/d1915f42fd3f28fabe22821b43253a8825111135))
+* **security/UNKNOWN/pkg/push:** Update module golang.org/x/net to v0.62.0 [SECURITY] (release-3.6.x) ([#25846](https://github.com/grafana/loki/issues/25846)) ([ab6aa07](https://github.com/grafana/loki/commit/ab6aa07e8b4f97c445167e6ad2849372a8f2a02c))
+* **security/UNKNOWN/:** Update module golang.org/x/net to v0.62.0 [SECURITY] (release-3.6.x) ([#25845](https://github.com/grafana/loki/issues/25845)) ([77bf026](https://github.com/grafana/loki/commit/77bf0261a029107470e74fcf787b8ee90de33312))
+
 ## [3.6.19](https://github.com/grafana/loki/compare/v3.6.18...v3.6.19) (2026-10-20)
 
 
