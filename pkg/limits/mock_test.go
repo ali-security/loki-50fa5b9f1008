@@ -44,7 +44,7 @@ func (m *mockLimits) PolicyMaxGlobalStreamsPerUser(_ string, _ string) (int, boo
 	return 0, false
 }
 
-func (m *mockLimits) PolicyStreamIdleExpiry(_ string, _ string) (time.Duration, bool) {
+func (m *mockLimits) PolicyLimitsServiceStreamsExpiry(_ string, _ string) (time.Duration, bool) {
 	return 0, false
 }
 

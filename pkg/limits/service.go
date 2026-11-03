@@ -402,12 +402,12 @@ func (s *Service) running(ctx context.Context) error {
 
 // evictOldStreamsPeriodic runs a periodic job that evicts old streams.
 // It runs two evictions per window size. It also evicts the idle streams of
-// policies with a stream idle expiry, more often, as these expiries are
+// policies with a custom idle expiry, more often, as these expiries are
 // shorter than the active window.
 func (s *Service) evictOldStreamsPeriodic(ctx context.Context) {
 	ticker := time.NewTicker(s.cfg.EvictionInterval)
 	defer ticker.Stop()
-	idleTicker := time.NewTicker(s.cfg.IdleEvictionInterval)
+	idleTicker := time.NewTicker(s.cfg.PoliciesCustomEvictionInterval)
 	defer idleTicker.Stop()
 	for {
 		select {

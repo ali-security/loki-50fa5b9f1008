@@ -31,10 +31,10 @@ func newTestService(t *testing.T, limits Limits, numPartitions int) (*Service, *
 	logger := log.NewNopLogger()
 	return &Service{
 		cfg: Config{
-			NumPartitions:        numPartitions,
-			ActiveWindow:         activeWindow,
-			EvictionInterval:     DefaultEvictInterval,
-			IdleEvictionInterval: DefaultIdleEvictInterval,
+			NumPartitions:                  numPartitions,
+			ActiveWindow:                   activeWindow,
+			EvictionInterval:               DefaultEvictInterval,
+			PoliciesCustomEvictionInterval: DefaultPoliciesCustomEvictionInterval,
 		},
 		limits:           limits,
 		partitionManager: partitionManager,
@@ -276,7 +276,7 @@ func TestService_EvictOldStreams(t *testing.T) {
 	s, clock := newTestService(t, limits, 1)
 	s.partitionManager.Assign([]int32{0})
 	s.cfg.EvictionInterval = 10 * time.Millisecond
-	s.cfg.IdleEvictionInterval = time.Hour
+	s.cfg.PoliciesCustomEvictionInterval = time.Hour
 
 	_, err := s.CheckLimitsAndShard(t.Context(), &proto.CheckLimitsAndShardRequest{
 		Tenant:  "test",

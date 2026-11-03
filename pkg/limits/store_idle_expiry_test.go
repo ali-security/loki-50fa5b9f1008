@@ -32,7 +32,7 @@ func (m *mockLimitsWithIdleExpiry) PolicyMaxGlobalStreamsPerUser(_, policy strin
 	return limit, ok
 }
 
-func (m *mockLimitsWithIdleExpiry) PolicyStreamIdleExpiry(_, policy string) (time.Duration, bool) {
+func (m *mockLimitsWithIdleExpiry) PolicyLimitsServiceStreamsExpiry(_, policy string) (time.Duration, bool) {
 	expiry, ok := m.idleExpiries[policy]
 	return expiry, ok
 }
@@ -147,7 +147,7 @@ func TestService_EvictIdleStreams(t *testing.T) {
 	s, clock := newTestService(t, limits, 1)
 	s.partitionManager.Assign([]int32{0})
 	s.cfg.EvictionInterval = time.Hour
-	s.cfg.IdleEvictionInterval = 10 * time.Millisecond
+	s.cfg.PoliciesCustomEvictionInterval = 10 * time.Millisecond
 
 	metadata := &proto.StreamMetadata{StreamHash: 0x1, TotalSize: 100, IngestionPolicy: backfillPolicy}
 	_, err := s.CheckLimitsAndShard(t.Context(), &proto.CheckLimitsAndShardRequest{

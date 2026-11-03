@@ -64,7 +64,7 @@ func resolveIdleExpiry(limits Limits, tenant, policyBucket string) time.Duration
 	if policyBucket == noPolicy {
 		return 0
 	}
-	expiry, ok := limits.PolicyStreamIdleExpiry(tenant, policyBucket)
+	expiry, ok := limits.PolicyLimitsServiceStreamsExpiry(tenant, policyBucket)
 	if !ok || expiry <= 0 {
 		return 0
 	}

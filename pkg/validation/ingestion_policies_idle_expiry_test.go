@@ -8,11 +8,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestOverrides_PolicyStreamIdleExpiry(t *testing.T) {
+func TestOverrides_PolicyLimitsServiceStreamsExpiry(t *testing.T) {
 	limits := &Limits{
 		PolicyOverrideLimits: map[string]PolicyOverridableLimits{
-			"backfill": {StreamIdleExpiry: ptr(model.Duration(10 * time.Minute))},
-			"zero":     {StreamIdleExpiry: ptr(model.Duration(0))},
+			"backfill": {LimitsServiceStreamsExpiry: ptr(model.Duration(10 * time.Minute))},
+			"zero":     {LimitsServiceStreamsExpiry: ptr(model.Duration(0))},
 			"unset":    {MaxGlobalStreamsPerUser: ptr(5)},
 			// inherit_limits does not apply: there is no tenant-level expiry.
 			"inherit": {InheritLimits: true},
@@ -20,17 +20,17 @@ func TestOverrides_PolicyStreamIdleExpiry(t *testing.T) {
 	}
 	overrides := &Overrides{defaultLimits: limits}
 
-	expiry, ok := overrides.PolicyStreamIdleExpiry("tenant1", "backfill")
+	expiry, ok := overrides.PolicyLimitsServiceStreamsExpiry("tenant1", "backfill")
 	require.True(t, ok)
 	require.Equal(t, 10*time.Minute, expiry)
 
 	for _, policy := range []string{"zero", "unset", "inherit", "unknown", ""} {
-		_, ok = overrides.PolicyStreamIdleExpiry("tenant1", policy)
+		_, ok = overrides.PolicyLimitsServiceStreamsExpiry("tenant1", policy)
 		require.False(t, ok, policy)
 	}
 }
 
-func TestPolicyOverridableLimits_ValidateStreamIdleExpiry(t *testing.T) {
+func TestPolicyOverridableLimits_ValidateLimitsServiceStreamsExpiry(t *testing.T) {
 	inherit := PolicyOverridableLimits{InheritLimits: true}
 	for _, tc := range []struct {
 		name    string
@@ -40,9 +40,9 @@ func TestPolicyOverridableLimits_ValidateStreamIdleExpiry(t *testing.T) {
 	}{
 		{name: "unset"},
 		{name: "zero", expiry: ptr(model.Duration(0))},
-		{name: "minimum", limits: inherit, expiry: ptr(model.Duration(MinStreamIdleExpiry))},
+		{name: "minimum", limits: inherit, expiry: ptr(model.Duration(MinLimitsServiceStreamsExpiry))},
 		{name: "above minimum", limits: inherit, expiry: ptr(model.Duration(time.Hour))},
-		{name: "below minimum", limits: inherit, expiry: ptr(model.Duration(MinStreamIdleExpiry - time.Second)), wantErr: true},
+		{name: "below minimum", limits: inherit, expiry: ptr(model.Duration(MinLimitsServiceStreamsExpiry - time.Second)), wantErr: true},
 		{name: "negative", limits: inherit, expiry: ptr(model.Duration(-time.Minute)), wantErr: true},
 		{
 			name:   "with max_global_streams_per_user",
@@ -64,7 +64,7 @@ func TestPolicyOverridableLimits_ValidateStreamIdleExpiry(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			limits := tc.limits
-			limits.StreamIdleExpiry = tc.expiry
+			limits.LimitsServiceStreamsExpiry = tc.expiry
 			err := limits.Validate()
 			if tc.wantErr {
 				require.Error(t, err)

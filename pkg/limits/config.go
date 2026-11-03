@@ -12,13 +12,13 @@ import (
 )
 
 const (
-	DefaultActiveWindow      = 2 * time.Hour
-	DefaultRateWindow        = 5 * time.Minute
-	DefaultBucketSize        = 1 * time.Minute
-	DefaultEvictInterval     = 10 * time.Minute
-	DefaultIdleEvictInterval = time.Minute
-	DefaultNumPartitions     = 64
-	DefaultConsumerGroup     = "ingest-limits"
+	DefaultActiveWindow                   = 2 * time.Hour
+	DefaultRateWindow                     = 5 * time.Minute
+	DefaultBucketSize                     = 1 * time.Minute
+	DefaultEvictInterval                  = 10 * time.Minute
+	DefaultPoliciesCustomEvictionInterval = time.Minute
+	DefaultNumPartitions                  = 64
+	DefaultConsumerGroup                  = "ingest-limits"
 )
 
 // Config represents the configuration for the ingest limits service.
@@ -44,9 +44,9 @@ type Config struct {
 	// EvictionInterval defines the interval at which old streams are evicted.
 	EvictionInterval time.Duration `yaml:"eviction_interval"`
 
-	// IdleEvictionInterval defines the interval at which streams of policies
-	// with a stream idle expiry are evicted once idle.
-	IdleEvictionInterval time.Duration `yaml:"idle_eviction_interval"`
+	// PoliciesCustomEvictionInterval defines the interval at which
+	// streams of policies with a custom idle expiry are evicted once idle.
+	PoliciesCustomEvictionInterval time.Duration `yaml:"policies_custom_eviction_interval"`
 
 	// StreamShardingDurabilityEnabled keeps the stream sharding rate buckets
 	// on the metadata topic.
@@ -96,10 +96,10 @@ func (cfg *Config) RegisterFlags(f *flag.FlagSet) {
 		"The interval at which old streams are evicted.",
 	)
 	f.DurationVar(
-		&cfg.IdleEvictionInterval,
-		"ingest-limits.idle-eviction-interval",
-		DefaultIdleEvictInterval,
-		"How often to evict the streams of ingestion policies with a stream_idle_expiry that have been idle for longer than that expiry.",
+		&cfg.PoliciesCustomEvictionInterval,
+		"ingest-limits.policies-custom-eviction-interval",
+		DefaultPoliciesCustomEvictionInterval,
+		"How often to evict the streams of ingestion policies with a limits_service_streams_expiry that have been idle for longer than that expiry.",
 	)
 	f.BoolVar(
 		&cfg.StreamShardingDurabilityEnabled,
@@ -147,8 +147,8 @@ func (cfg *Config) Validate() error {
 	if cfg.EvictionInterval <= 0 {
 		return errors.New("eviction interval must be greater than 0")
 	}
-	if cfg.IdleEvictionInterval <= 0 {
-		return errors.New("idle eviction interval must be greater than 0")
+	if cfg.PoliciesCustomEvictionInterval <= 0 {
+		return errors.New("policies custom eviction interval must be greater than 0")
 	}
 	if cfg.NumPartitions <= 0 {
 		return errors.New("num partitions must be greater than 0")
