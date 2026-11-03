@@ -498,7 +498,7 @@ func TestObjectMetastore_Sections_ShardBucketRange(t *testing.T) {
 
 	t.Run("a range that resolves no section leaves the resolved-sections ratio sum finite", func(t *testing.T) {
 		reg := prometheus.NewRegistry()
-		recording := NewObjectMetastore(bucketClient, Config{}, log.NewNopLogger(), NewObjectMetastoreMetrics(reg))
+		recording := NewObjectMetastore(bucketClient, Config{}, log.NewNopLogger(), reg)
 
 		resp, err := recording.Sections(ctx, requestWithBucketRange(&postings.ShardBucketRange{From: 4, To: 19}))
 		require.NoError(t, err)
@@ -1037,7 +1037,7 @@ func TestObjectMetastore_SectionsStream(t *testing.T) {
 			return nil
 		})
 		reg := prometheus.NewRegistry()
-		m := NewObjectMetastore(inMem, Config{}, logger, NewObjectMetastoreMetrics(reg))
+		m := NewObjectMetastore(inMem, Config{}, logger, reg)
 		boundedCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
 
@@ -1603,7 +1603,7 @@ func newTestDataBuilder(t testing.TB) *testDataBuilder {
 }
 
 func newTestObjectMetastore(bucket objstore.Bucket) *ObjectMetastore {
-	return NewObjectMetastore(bucket, Config{}, log.NewNopLogger(), NewObjectMetastoreMetrics(prometheus.NewRegistry()))
+	return NewObjectMetastore(bucket, Config{}, log.NewNopLogger(), prometheus.NewRegistry())
 }
 
 // uploadIndexObject uploads obj to a fresh in-memory bucket and returns a
@@ -1867,7 +1867,7 @@ func newTestMetastore(bucket objstore.Bucket) (*ObjectMetastore, *prometheus.Reg
 	reg := prometheus.NewRegistry()
 	logs := bytes.NewBuffer(nil)
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(logs))
-	return NewObjectMetastore(bucket, Config{}, logger, NewObjectMetastoreMetrics(reg)), reg, logs
+	return NewObjectMetastore(bucket, Config{}, logger, reg), reg, logs
 }
 
 // createIndexObject uploads an index object with one postings section and one stats section for
@@ -2120,5 +2120,5 @@ func (g *readGate) open() {
 func newTestMetastoreWithCache(bucket objstore.Bucket) (*ObjectMetastore, cache.MockCache) {
 	memoryCache := cache.NewMockCache()
 	metadataCache := metadatacache.NewCache(memoryCache, 0, metadatacache.KindIndex, metadatacache.NewMetrics(nil), nil)
-	return NewObjectMetastore(bucket, Config{}, log.NewNopLogger(), NewObjectMetastoreMetrics(prometheus.NewRegistry()), WithIndexMetadataCache(metadataCache)), memoryCache
+	return NewObjectMetastore(bucket, Config{}, log.NewNopLogger(), prometheus.NewRegistry(), WithIndexMetadataCache(metadataCache)), memoryCache
 }

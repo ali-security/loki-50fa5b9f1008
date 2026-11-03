@@ -57,7 +57,7 @@ func (s *indexObjectSource) each(ctx context.Context, fn func(sec *dataobj.Secti
 		s.rawBucket,
 		s.metastoreCfg,
 		s.logger,
-		metastore.NewObjectMetastoreMetrics(nil),
+		nil,
 	)
 
 	indexes, err := store.GetIndexes(ctx, metastore.GetIndexesRequest{Start: s.from, End: s.to})

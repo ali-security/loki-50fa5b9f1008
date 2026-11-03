@@ -399,7 +399,7 @@ func (b *Builder) Metastore() *metastore.ObjectMetastore {
 		b.bucket,
 		metastore.Config{IndexStoragePrefix: indexPrefix},
 		b.logger,
-		metastore.NewObjectMetastoreMetrics(nil),
+		nil,
 	)
 }
 
