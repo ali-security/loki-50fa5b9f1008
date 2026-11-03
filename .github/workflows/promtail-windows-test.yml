@@ -1,13 +1,16 @@
 name: Promtail Windows Test
 on:
-  pull_request:
-    branches: ["main", "k*", "release-[0-9]+.[0-9]+.x"]
-  push:
-    tags: ['v[0-9].[0-9]+.[0-9]+']
-    branches: ["main", "k*", "release-[0-9]+.[0-9]+.x"]
+  workflow_dispatch:
+    inputs:
+      test-filter:
+        description: "space-separated test names to run instead of the full suite"
+        required: false
+        default: ""
+        type: string
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 30
     strategy:
       matrix:
         go-version: [ '1.21.9', '1.22.2' ]
@@ -21,4 +24,13 @@ jobs:
       - name: Display Go version
         run: go version
       - name: Run promtail tests
-        run: go test .\clients\pkg\promtail\targets\windows\... -v
+        env:
+          TEST_FILTER: ${{ inputs.test-filter }}
+        run: |
+          if ($env:TEST_FILTER) {
+            $sel = '^(' + ($env:TEST_FILTER -replace ' ', '|') + ')$'
+            go test .\clients\pkg\promtail\targets\windows\... -v -run $sel
+          } else {
+            go test .\clients\pkg\promtail\targets\windows\... -v
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -822,9 +822,7 @@ jobs:
       working-directory: "lib"
 name: "Prepare Minor Release PR from Weekly"
 "on":
-  push:
-    branches:
-    - "k[0-9]+"
+  "workflow_dispatch": {}
 permissions:
   contents: "write"
   id-token: "write"

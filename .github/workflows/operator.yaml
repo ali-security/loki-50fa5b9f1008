@@ -1,13 +1,7 @@
 name: operator build
 
 on:
-  push:
-    paths:
-      - 'operator/**'
-    branches: [ main ]
-  pull_request:
-    paths:
-      - 'operator/**'
+  workflow_dispatch:
 
 jobs:
   docs:

@@ -1,15 +1,156 @@
 "jobs":
-  "check":
-    "uses": "grafana/loki-release/.github/workflows/check.yml@main"
-    "with":
-      "build_image": "grafana/loki-build-image:0.33.7"
-      "golang_ci_lint_version": "v1.55.1"
-      "release_lib_ref": "main"
-      "skip_validation": false
-      "use_github_app_token": true
+  "collectPackages":
+    "outputs":
+      "packages": "${{ steps.gather-tests.outputs.packages }}"
+    "runs-on": "ubuntu-latest"
+    "timeout-minutes": 10
+    "steps":
+    - "name": "checkout"
+      "uses": "actions/checkout@v4"
+    - "name": "fix git dubious ownership"
+      "run": |
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - "id": "gather-tests"
+      "name": "gather packages"
+      "run": |
+        echo "packages=$(find . -path '*_test.go' -printf '%h\n' \
+          | grep -e "pkg/push" -e "integration" -e "operator" -e "lambda-promtail" -e "helm" -v \
+          | cut  -d / -f 2,3 \
+          | uniq \
+          | sort \
+          | jq --raw-input --slurp --compact-output 'split("\n")[:-1]')" >> ${GITHUB_OUTPUT}
+  "integration":
+    "container":
+      "image": "grafana/loki-build-image:0.33.7"
+    "env":
+      "BUILD_IN_CONTAINER": false
+    "runs-on": "ubuntu-latest"
+    "timeout-minutes": 45
+    "steps":
+    - "name": "checkout"
+      "uses": "actions/checkout@v4"
+    - "name": "fix git dubious ownership"
+      "run": |
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - "name": "integration"
+      "env":
+        "TEST_FILTER": "${{ inputs.test-filter }}"
+      "run": |
+        if [ -n "$TEST_FILTER" ]; then
+          go test -count=1 -v -tags=integration -timeout 10m -run "^($(echo "$TEST_FILTER" | tr ' ' '|'))$" ./integration
+        else
+          make test-integration
+        fi
+  "testPackages":
+    "container":
+      "image": "grafana/loki-build-image:0.33.7"
+    "env":
+      "BUILD_IN_CONTAINER": false
+    "needs":
+    - "collectPackages"
+    "runs-on": "ubuntu-latest"
+    "timeout-minutes": 45
+    "steps":
+    - "name": "checkout"
+      "uses": "actions/checkout@v4"
+    - "name": "fix git dubious ownership"
+      "run": |
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - "name": "test ${{ matrix.package }}"
+      "env":
+        "TEST_FILTER": "${{ inputs.test-filter }}"
+      "run": |
+        if [ -n "$TEST_FILTER" ]; then
+          gotestsum -- -covermode=atomic -coverprofile=coverage.txt -p=4 -run "^($(echo "$TEST_FILTER" | tr ' ' '|'))$" ./${{ matrix.package }}/...
+        else
+          gotestsum -- -covermode=atomic -coverprofile=coverage.txt -p=4 ./${{ matrix.package }}/...
+        fi
+    "strategy":
+      "fail-fast": false
+      "matrix":
+        "package": "${{fromJson(needs.collectPackages.outputs.packages)}}"
+  "testPushPackage":
+    "container":
+      "image": "grafana/loki-build-image:0.33.7"
+    "env":
+      "BUILD_IN_CONTAINER": false
+    "runs-on": "ubuntu-latest"
+    "timeout-minutes": 30
+    "steps":
+    - "name": "checkout"
+      "uses": "actions/checkout@v4"
+    - "name": "fix git dubious ownership"
+      "run": |
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - "name": "test push package"
+      "env":
+        "TEST_FILTER": "${{ inputs.test-filter }}"
+      "run": |
+        if [ -n "$TEST_FILTER" ]; then
+          gotestsum -- -covermode=atomic -coverprofile=coverage.txt -p=4 -run "^($(echo "$TEST_FILTER" | tr ' ' '|'))$" ./...
+        else
+          gotestsum -- -covermode=atomic -coverprofile=coverage.txt -p=4 ./...
+        fi
+      "working-directory": "pkg/push"
+  "buildModuleZip":
+    "runs-on": "ubuntu-latest"
+    "timeout-minutes": 20
+    "steps":
+    - "name": "checkout"
+      "uses": "actions/checkout@v4"
+      "with":
+        "path": "src"
+    - "name": "setup go"
+      "uses": "actions/setup-go@v5"
+      "with":
+        "go-version": "1.22"
+        "cache": false
+    - "name": "create module zip"
+      "run": |
+        mkdir -p "$RUNNER_TEMP/helper" dist
+        cat > "$RUNNER_TEMP/helper/main.go" <<'EOF'
+        package main
+
+        import (
+          "log"
+          "os"
+
+          "golang.org/x/mod/module"
+          "golang.org/x/mod/zip"
+        )
+
+        func main() {
+          m := module.Version{Path: os.Args[1], Version: os.Args[2]}
+          f, err := os.Create(os.Args[4])
+          if err != nil {
+            log.Fatal(err)
+          }
+          defer f.Close()
+          if err := zip.CreateFromDir(f, m, os.Args[3]); err != nil {
+            log.Fatal(err)
+          }
+          log.Printf("created module zip: %s", os.Args[4])
+        }
+        EOF
+        OUT="$PWD/dist/v3.2.1.zip"
+        SRC="$PWD/src"
+        cd "$RUNNER_TEMP/helper"
+        go mod init example.com/helper
+        go get golang.org/x/mod@v0.20.0
+        go run . github.com/grafana/loki/v3 v3.2.1 "$SRC" "$OUT"
+        unzip -l "$OUT" | tail -1
+    - "name": "upload module zip"
+      "uses": "actions/upload-artifact@v4"
+      "with":
+        "name": "module-zip"
+        "path": "dist/v3.2.1.zip"
+        "if-no-files-found": "error"
 "name": "check"
 "on":
-  "pull_request": {}
-  "push":
-    "branches":
-    - "main"
+  "workflow_dispatch":
+    "inputs":
+      "test-filter":
+        "description": "space-separated test names to run instead of the full suite"
+        "required": false
+        "default": ""
+        "type": "string"

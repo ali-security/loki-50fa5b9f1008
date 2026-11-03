@@ -1,11 +1,6 @@
 name: operator images
 
 on:
-  push:
-    paths:
-      - 'operator/**'
-    branches:
-      - main
   workflow_dispatch:
 
 env:

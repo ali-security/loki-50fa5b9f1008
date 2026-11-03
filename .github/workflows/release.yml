@@ -211,11 +211,7 @@ jobs:
         baseBranch: "${{ steps.extract_branch.outputs.branch }}"
 name: "create release"
 "on":
-  push:
-    branches:
-    - "release-[0-9]+.[0-9]+.x"
-    - "k[0-9]+"
-    - "main"
+  "workflow_dispatch": {}
 permissions:
   contents: "write"
   id-token: "write"
